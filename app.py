@@ -4,6 +4,9 @@ st.set_page_config(page_title="Калькулятор чаевых", layout="wid
 
 st.title("🍻 Калькулятор чаевых")
 
+# ------------------------
+# Список сотрудников
+# ------------------------
 DEFAULT_WAITERS = {
     "Алена Емельянова": "female",
     "Андрей Головко": "male",
@@ -27,28 +30,34 @@ if "waiters" not in st.session_state:
 if "rows" not in st.session_state:
     st.session_state.rows = 1
 
+# ------------------------
+# Блок добавления/удаления сотрудников
+# ------------------------
 top_left, top_right = st.columns([3, 1])
 
 with top_right:
-    with st.expander("⚙️ Сотрудники"):
+    with st.expander("⚙️ Управление сотрудниками"):
         new_name = st.text_input("Новый сотрудник")
         new_gender = st.selectbox("Пол", ["male", "female"], format_func=lambda x: "Мужчина" if x == "male" else "Женщина")
 
-        if st.button("Добавить"):
+        if st.button("Добавить сотрудника"):
             if new_name.strip():
                 st.session_state.waiters[new_name.strip()] = new_gender
-                st.success("Сотрудник добавлен")
+                st.success(f"Сотрудник {new_name.strip()} добавлен")
 
         delete_name = st.selectbox(
             "Удалить сотрудника",
             [""] + sorted(st.session_state.waiters.keys())
         )
 
-        if st.button("Удалить"):
+        if st.button("Удалить сотрудника"):
             if delete_name:
                 del st.session_state.waiters[delete_name]
-                st.success("Сотрудник удален")
+                st.success(f"Сотрудник {delete_name} удален")
 
+# ------------------------
+# Ввод данных смены
+# ------------------------
 day = st.selectbox(
     "День недели",
     ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
@@ -101,15 +110,18 @@ for i in range(st.session_state.rows):
             "earned": 0
         })
 
-
+# ------------------------
+# Вспомогательные функции
+# ------------------------
 def earned_word(gender):
     return "заработала" if gender == "female" else "заработал"
-
 
 def debt_word(gender):
     return "должна" if gender == "female" else "должен"
 
-
+# ------------------------
+# Расчет чаевых
+# ------------------------
 if st.button("Рассчитать"):
 
     if not employees:
@@ -119,20 +131,30 @@ if st.button("Рассчитать"):
     total_cards = sum(e["card"] for e in employees)
     total_tips = cash + total_cards
 
-    manager = 1000
-
+    # Мойка: отдельно для официантов и бара
     if day in ["Понедельник", "Вторник", "Среда", "Четверг"]:
-        wash = len(employees) * 200 + 300
+        waiter_wash = len(employees) * 200
+        bar_wash = 300
     else:
-        wash = len(employees) * 250 + 350
+        waiter_wash = len(employees) * 250
+        bar_wash = 350
 
+    wash = waiter_wash + bar_wash
+
+    # Бар: 10% от оставшегося после менеджера и мойки
     bar_base = total_tips - manager - wash
-    bar = round(bar_base * 0.10)
+    bar_percent = round(bar_base * 0.10)
 
+    # Чистые деньги бара с учетом их части на мойку
+    bar = bar_percent - bar_wash
+
+    # Чистые чаевые для официантов
     waiter_tips = total_tips - manager - wash - bar
 
+    # ------------------------
+    # Распределение по приходу
+    # ------------------------
     arrival_points = sorted(set(e["arrival"] for e in employees if e["arrival"] > 0))
-
     previous_point = 0
 
     for point in arrival_points:
@@ -147,6 +169,7 @@ if st.button("Рассчитать"):
 
         previous_point = point
 
+    # Финальный слой на всех
     already_counted = round(previous_point * 0.90)
     final_layer = waiter_tips - already_counted
     final_part = round(final_layer / len(employees))
@@ -154,10 +177,13 @@ if st.button("Рассчитать"):
     for e in employees:
         e["earned"] += final_part
 
+    # ------------------------
+    # Вывод результата
+    # ------------------------
     st.subheader("Результат")
 
     st.write(f"На мойку {wash}")
-    st.write(f"Менеджер {manager}")
+    st.write(f"Менеджер 1000")
     st.write(f"На бар {bar}")
 
     st.divider()
