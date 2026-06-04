@@ -1,37 +1,96 @@
 import streamlit as st
 
-st.title("Калькулятор чаевых")
+st.set_page_config(page_title="Калькулятор чаевых", layout="wide")
 
-col1, col2 = st.columns(2)
+st.title("🍻 Калькулятор чаевых")
 
-with col1:
-    bill_amount = st.number_input("Сумма счета (₽)", value=100.0, min_value=0.0, step=10.0)
+day = st.selectbox(
+    "День недели",
+    [
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота",
+        "Воскресенье"
+    ]
+)
 
-with col2:
-    tip_percent = st.slider("Процент чаевых (%)", min_value=0, max_value=50, value=15, step=1)
+cash = st.number_input(
+    "Наличка",
+    min_value=0,
+    value=0,
+    step=100
+)
 
-col3, col4 = st.columns(2)
+st.subheader("Сотрудники")
 
-with col3:
-    num_people = st.number_input("Количество человек", value=1, min_value=1, step=1)
+employees = []
 
-with col4:
-    st.empty()
+for i in range(8):
+    col1, col2, col3 = st.columns([2,1,1])
 
-if st.button("Рассчитать", use_container_width=True):
-    tip_amount = bill_amount * (tip_percent / 100)
-    total_amount = bill_amount + tip_amount
-    per_person = total_amount / num_people
-    
-    col1, col2, col3 = st.columns(3)
-    
     with col1:
-        st.metric("Сумма счета", f"₽{bill_amount:.2f}")
+        name = st.text_input(
+            f"Имя {i+1}",
+            key=f"name_{i}"
+        )
+
     with col2:
-        st.metric("Чаевые", f"₽{tip_amount:.2f}")
+        card = st.number_input(
+            f"Карта {i+1}",
+            min_value=0,
+            value=0,
+            key=f"card_{i}"
+        )
+
     with col3:
-        st.metric("Всего", f"₽{total_amount:.2f}")
-    
+        arrival = st.number_input(
+            f"Пришел при чае {i+1}",
+            min_value=0,
+            value=0,
+            key=f"arrival_{i}"
+        )
+
+    if name:
+        employees.append({
+            "name": name,
+            "card": card,
+            "arrival": arrival
+        })
+
+if st.button("Рассчитать"):
+
+    if len(employees) == 0:
+        st.error("Добавьте сотрудников")
+        st.stop()
+
+    total_cards = sum(x["card"] for x in employees)
+    total_tips = cash + total_cards
+
+    manager = 1000
+
+    if day in [
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг"
+    ]:
+        wash = len(employees) * 200 + 300
+    else:
+        wash = len(employees) * 250 + 350
+
+    bar = round((total_tips - manager - wash) * 0.10)
+
+    st.subheader("Результат")
+
+    st.write(f"На мойку {wash}")
+    st.write(f"Менеджер {manager}")
+    st.write(f"На бар {bar}")
+
     st.divider()
-    
-    st.metric("На человека", f"₽{per_person:.2f}", delta=f"{tip_percent}%")
+
+    st.write(
+        f"Общий чай: {total_tips}"
+    )
