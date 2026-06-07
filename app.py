@@ -142,6 +142,8 @@ if st.button("Рассчитать"):
     wash = waiter_wash + bar_wash
 
     # Бар: 10% от оставшегося после менеджера и мойки
+manager = 1000
+
     bar_base = total_tips - manager - wash
     bar_percent = round(bar_base * 0.10)
 
