@@ -131,7 +131,9 @@ if st.button("Рассчитать"):
     total_cards = sum(e["card"] for e in employees)
     total_tips = cash + total_cards
 
-    # Мойка: отдельно для официантов и бара
+    manager = 1000
+
+    # Мойка
     if day in ["Понедельник", "Вторник", "Среда", "Четверг"]:
         waiter_wash = len(employees) * 200
         bar_wash = 300
@@ -141,63 +143,84 @@ if st.button("Рассчитать"):
 
     wash = waiter_wash + bar_wash
 
-    # Бар: 10% от оставшегося после менеджера и мойки
-manager = 1000
-
+    # Бар
     bar_base = total_tips - manager - wash
     bar_percent = round(bar_base * 0.10)
 
-    # Чистые деньги бара с учетом их части на мойку
+    # Бар получает меньше на сумму своей мойки
     bar = bar_percent - bar_wash
 
-    # Чистые чаевые для официантов
+    # Чай официантов
     waiter_tips = total_tips - manager - wash - bar
 
-    # ------------------------
-    # Распределение по приходу
-    # ------------------------
-    arrival_points = sorted(set(e["arrival"] for e in employees if e["arrival"] > 0))
+    # Точки прихода
+    arrival_points = sorted(
+        set(e["arrival"] for e in employees if e["arrival"] > 0)
+    )
+
     previous_point = 0
 
     for point in arrival_points:
-        active = [e for e in employees if e["arrival"] <= previous_point]
+
+        active = [
+            e for e in employees
+            if e["arrival"] <= previous_point
+        ]
 
         if active:
-            layer_amount = round((point - previous_point) * 0.90)
-            part = round(layer_amount / len(active))
+            layer_amount = round(
+                (point - previous_point) * 0.90
+            )
+
+            part = round(
+                layer_amount / len(active)
+            )
 
             for e in active:
                 e["earned"] += part
 
         previous_point = point
 
-    # Финальный слой на всех
+    # Финальный слой
     already_counted = round(previous_point * 0.90)
+
     final_layer = waiter_tips - already_counted
-    final_part = round(final_layer / len(employees))
+
+    final_part = round(
+        final_layer / len(employees)
+    )
 
     for e in employees:
         e["earned"] += final_part
 
-    # ------------------------
-    # Вывод результата
-    # ------------------------
+    # Вывод
     st.subheader("Результат")
 
     st.write(f"На мойку {wash}")
-    st.write(f"Менеджер 1000")
+    st.write(f"Менеджер {manager}")
     st.write(f"На бар {bar}")
 
     st.divider()
 
     for e in employees:
+
         result = e["earned"] - e["card"]
 
         if result >= 0:
+
             st.write(
-                f"{e['name']} — {earned_word(e['gender'])} {e['earned']}, скинуть {result}"
+                f"{e['name']} — "
+                f"{earned_word(e['gender'])} "
+                f"{e['earned']}, "
+                f"скинуть {result}"
             )
+
         else:
+
             st.write(
-                f"{e['name']} — {earned_word(e['gender'])} {e['earned']}, {debt_word(e['gender'])} {abs(result)}"
+                f"{e['name']} — "
+                f"{earned_word(e['gender'])} "
+                f"{e['earned']}, "
+                f"{debt_word(e['gender'])} "
+                f"{abs(result)}"
             )
